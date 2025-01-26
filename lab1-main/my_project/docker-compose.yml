@@ -1,0 +1,47 @@
+version: '3.8'  # Use the latest stable version of Docker Compose
+
+services:
+  web:
+    build: ./web
+    ports:
+      - "8888:8080"
+    depends_on:
+      - database
+      - cache
+    environment:
+      - export FLASK_APP=app.py  # Ensure Flask application entry point is set
+      - FLASK_ENV=development
+    volumes:
+      - ./web:/app  # Mount local directory to the container for live changes
+    networks:
+      - app-network  # Ensures web service can communicate with database and cache
+  
+  database:
+    build: ./database
+    environment:
+      - POSTGRES_PASSWORD=mysecretpassword  # Set a default password for the PostgreSQL database
+      - POSTGRES_DB=mydatabase  # Optional: Specify a custom database name
+    ports:
+      - "5432:5432"  # Expose PostgreSQL default port
+    volumes:
+      - db_data:/var/lib/postgresql/data  # Persist database data
+    networks:
+      - app-network  # Connects the database to the app network
+
+  cache:
+    build: ./cache
+    depends_on:
+      - database  # Ensure cache starts after the database is ready
+    environment:
+      - export FLASK_APP=app.py  # Ensure Flask application entry point is set
+      - FLASK_ENV=development
+    networks:
+      - app-network  # Connects the cache to the app network
+  
+networks:
+  app-network:
+    driver: bridge  # Create a custom network for better isolation and communication between services
+
+volumes:
+  db_data:
+    driver: local  # Persistent volume for PostgreSQL data
